@@ -287,13 +287,22 @@ docker exec -i customer_analytics_postgres psql -U analytics_engineer -d custome
 ## Dashboard Preview
 The screenshots below show the four main report pages built from the warehouse.
 
+**Executive Overview**
+
 ![Executive Overview](assets/executive_overview.png)
+
+**Customer Analysis**
 
 ![Customer Analysis](assets/customer_analysis.png)
 
+**Product Performance**
+
 ![Product Performance](assets/product_performance.png)
 
+**Geographic View**
+
 ![Geographic View](assets/geographic_view.png)
+
 ---
 
 ## Project Value
