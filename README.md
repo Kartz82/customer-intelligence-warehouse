@@ -285,6 +285,7 @@ docker exec -i customer_analytics_postgres psql -U analytics_engineer -d custome
 ```
 
 ## Dashboard Preview
+The screenshots below show the four main report pages built from the warehouse.
 
 ![Executive Overview](assets/executive_overview.png)
 
