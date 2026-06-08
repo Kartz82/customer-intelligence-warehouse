@@ -284,6 +284,15 @@ docker exec -i customer_analytics_postgres psql -U analytics_engineer -d custome
 docker exec -i customer_analytics_postgres psql -U analytics_engineer -d customer_intelligence_db < sql/analytics/monthly_revenue.sql
 ```
 
+## Dashboard Preview
+
+![Executive Overview](assets/executive_overview.png)
+
+![Customer Analysis](assets/customer_analysis.png)
+
+![Product Performance](assets/product_performance.png)
+
+![Geographic View](assets/geographic_view.png)
 ---
 
 ## Project Value
