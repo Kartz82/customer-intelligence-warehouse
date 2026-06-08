@@ -1,0 +1,13 @@
+# Ignore raw data files and Excel binaries
+data/raw/
+*.xlsx
+*.csv
+
+# Ignore local python caches and environment variables
+__pycache__/
+*.pyc
+.env
+.DS_Store
+
+# Ignore docker local volumes if stored here
+.docker/

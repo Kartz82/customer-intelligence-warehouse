@@ -1,0 +1,10 @@
+database:
+  user: 'analytics_engineer'
+  password: 'Password123!'
+  host: '127.0.0.1'
+  port: 5433
+  db_name: 'customer_intelligence_db'
+
+paths:
+  raw_data_source: "data/raw/online_retail_II.xlsx"
+  processed_folder: "data/processed/"

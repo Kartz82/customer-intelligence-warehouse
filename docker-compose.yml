@@ -1,0 +1,17 @@
+services:
+  postgres_warehouse:
+    image: postgres:15-alpine
+    container_name: customer_analytics_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: analytics_engineer
+      POSTGRES_PASSWORD: "Password123!"
+      POSTGRES_DB: customer_intelligence_db
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
