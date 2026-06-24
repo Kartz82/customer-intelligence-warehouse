@@ -1,0 +1,16 @@
+version: 2
+
+sources:
+  - name: warehouse
+    description: Existing PostgreSQL warehouse tables loaded by the Python ETL pipeline.
+    database: customer_intelligence_db
+    schema: public
+    tables:
+      - name: fact_sales
+        description: Transaction-level sales fact table loaded from Online Retail II.
+      - name: dim_customer
+        description: Customer dimension containing known non-null customer identifiers.
+      - name: dim_product
+        description: Product dimension keyed by stock code.
+      - name: dim_country
+        description: Country dimension with surrogate country keys.

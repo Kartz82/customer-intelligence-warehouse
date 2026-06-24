@@ -21,5 +21,9 @@ CREATE TABLE IF NOT EXISTS fact_sales (
     country_id     INT REFERENCES dim_country(country_id),
     quantity       INT,
     invoice_date   TIMESTAMP,
-    unit_price     NUMERIC(10, 2)
+    unit_price     NUMERIC(10, 2),
+    is_return      BOOLEAN
 );
+
+ALTER TABLE fact_sales
+ADD COLUMN IF NOT EXISTS is_return BOOLEAN;

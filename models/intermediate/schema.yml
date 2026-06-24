@@ -1,0 +1,99 @@
+version: 2
+
+models:
+  - name: int_sales_enriched
+    description: Transaction-level sales rows enriched with product and country attributes.
+    columns:
+      - name: sale_id
+        description: Transaction row identifier.
+        tests:
+          - unique
+          - not_null
+      - name: invoice_number
+        description: Invoice or order identifier.
+        tests:
+          - not_null
+      - name: stock_code
+        description: Product stock code.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_products')
+                field: stock_code
+      - name: customer_id
+        description: Nullable customer identifier. Guest checkout rows are valid nulls; the relationship test applies to populated customer IDs.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_customers')
+                field: customer_id
+      - name: country_id
+        description: Country surrogate key.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_countries')
+                field: country_id
+      - name: is_return
+        description: Boolean return flag.
+        tests:
+          - accepted_values:
+              arguments:
+                values: [true, false]
+                quote: false
+
+  - name: int_order_metrics
+    description: Invoice-level sales metrics used for AOV and order analysis.
+    columns:
+      - name: invoice_number
+        description: Unique invoice identifier.
+        tests:
+          - unique
+          - not_null
+      - name: order_revenue
+        description: Positive-sale revenue for the invoice.
+      - name: quantity_sold
+        description: Positive-sale quantity for the invoice.
+
+  - name: int_customer_orders
+    description: Customer-level order history and repeat purchase indicator.
+    columns:
+      - name: customer_id
+        description: Unique known customer identifier.
+        tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_customers')
+                field: customer_id
+      - name: order_count
+        description: Distinct invoice count for the customer.
+      - name: is_repeat_customer
+        description: True when the customer has more than one distinct invoice.
+
+  - name: int_customer_lifetime_value
+    description: Customer-level lifetime value metrics from positive sales.
+    columns:
+      - name: customer_id
+        description: Unique known customer identifier.
+        tests:
+          - unique
+          - not_null
+      - name: customer_lifetime_value
+        description: Total positive-sale revenue attributed to the customer.
+
+  - name: int_country_metrics
+    description: Country-level revenue, invoice, customer, quantity, and AOV metrics.
+    columns:
+      - name: country_id
+        description: Country surrogate key.
+        tests:
+          - unique
+          - relationships:
+              arguments:
+                to: ref('stg_countries')
+                field: country_id
+      - name: country_name
+        description: Country name.

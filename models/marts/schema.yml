@@ -1,0 +1,86 @@
+version: 2
+
+models:
+  - name: mart_executive_kpis
+    description: One-row executive KPI mart for revenue, invoices, customers, AOV, repeat purchase rate, and quantity sold.
+    columns:
+      - name: total_revenue
+        description: Total positive-sale revenue.
+      - name: total_invoices
+        description: Distinct invoice count.
+        tests:
+          - not_null
+      - name: total_customers
+        description: Known customer count.
+        tests:
+          - not_null
+      - name: aov
+        description: Average order value from positive-sale revenue divided by invoices.
+      - name: repeat_purchase_rate
+        description: Share of known customers with more than one invoice.
+      - name: total_quantity_sold
+        description: Total positive-sale quantity.
+
+  - name: mart_customer_lifetime_value
+    description: Customer-level lifetime value mart for BI and customer analysis.
+    columns:
+      - name: customer_id
+        description: Unique known customer identifier.
+        tests:
+          - unique
+          - not_null
+      - name: total_revenue
+        description: Total positive-sale revenue.
+      - name: order_count
+        description: Distinct invoice count.
+      - name: first_order_date
+        description: First invoice timestamp.
+      - name: last_order_date
+        description: Most recent invoice timestamp.
+      - name: customer_lifetime_value
+        description: Customer lifetime value, currently equal to total positive-sale revenue.
+
+  - name: mart_repeat_purchase_metrics
+    description: One-row repeat purchase mart showing repeat customers, total customers, and repeat purchase rate.
+    columns:
+      - name: repeat_customers
+        description: Count of known customers with more than one invoice.
+        tests:
+          - not_null
+      - name: total_customers
+        description: Count of known customers.
+        tests:
+          - not_null
+      - name: repeat_purchase_rate
+        description: Repeat customers divided by total known customers.
+
+  - name: mart_country_revenue
+    description: Country-level revenue mart for geographic reporting.
+    columns:
+      - name: country_name
+        description: Country name.
+        tests:
+          - not_null
+      - name: total_revenue
+        description: Total positive-sale revenue.
+      - name: invoice_count
+        description: Distinct invoice count for the country.
+      - name: customer_count
+        description: Known customer count for the country.
+      - name: aov
+        description: Country average order value.
+
+  - name: mart_sales_monthly
+    description: Monthly revenue mart for trend reporting.
+    columns:
+      - name: month
+        description: Month of invoice activity.
+        tests:
+          - unique
+          - not_null
+      - name: revenue
+        description: Monthly positive-sale revenue.
+      - name: invoice_count
+        description: Monthly distinct invoice count.
+      - name: quantity_sold
+        description: Monthly positive-sale quantity.

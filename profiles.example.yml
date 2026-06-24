@@ -1,0 +1,13 @@
+customer_intelligence_dbt:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: localhost
+      port: 5433
+      user: analytics_engineer
+      password: "{{ env_var('DBT_POSTGRES_PASSWORD') }}"
+      dbname: customer_intelligence_db
+      schema: analytics
+      threads: 4
+      keepalives_idle: 0

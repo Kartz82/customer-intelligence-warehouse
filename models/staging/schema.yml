@@ -1,0 +1,81 @@
+version: 2
+
+models:
+  - name: stg_sales
+    description: Clean staging view over the existing transaction-level fact_sales table. Preserves source row grain.
+    columns:
+      - name: sale_id
+        description: Surrogate transaction row identifier from the warehouse load.
+        tests:
+          - unique
+          - not_null
+      - name: invoice_number
+        description: Invoice or order identifier.
+        tests:
+          - not_null
+      - name: stock_code
+        description: Product stock code.
+        tests:
+          - not_null
+      - name: customer_id
+        description: Customer identifier. Null values represent guest checkout or unknown customer rows.
+      - name: country_id
+        description: Country surrogate key from dim_country.
+      - name: quantity
+        description: Transaction line quantity. Negative values represent returns.
+        tests:
+          - not_null
+      - name: invoice_date
+        description: Timestamp when the invoice was created.
+        tests:
+          - not_null
+      - name: unit_price
+        description: Unit price for the transaction line.
+        tests:
+          - not_null
+      - name: is_return
+        description: Boolean flag for return or cancellation rows.
+        tests:
+          - accepted_values:
+              arguments:
+                values: [true, false]
+                quote: false
+      - name: line_revenue
+        description: Quantity multiplied by unit price.
+      - name: is_positive_sale
+        description: True when quantity is positive and unit price is nonnegative.
+
+  - name: stg_customers
+    description: Staging view for known customers.
+    columns:
+      - name: customer_id
+        description: Unique known customer identifier.
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_products
+    description: Staging view for product attributes.
+    columns:
+      - name: stock_code
+        description: Unique product stock code.
+        tests:
+          - unique
+          - not_null
+      - name: product_name
+        description: Product description from the latest loaded source row.
+      - name: unit_price_reference
+        description: Reference unit price captured in the product dimension.
+
+  - name: stg_countries
+    description: Staging view for country attributes.
+    columns:
+      - name: country_id
+        description: Unique country surrogate key.
+        tests:
+          - unique
+          - not_null
+      - name: country_name
+        description: Source country name.
+        tests:
+          - not_null
