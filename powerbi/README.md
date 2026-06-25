@@ -1,32 +1,229 @@
-# Power BI / Power Query Documentation
+# Customer Intelligence Data Warehouse
 
-This folder documents the Power BI-ready semantic layer and export workflow for the Customer Intelligence Data Warehouse.
+A reproducible analytics engineering and BI-ready warehouse project built around Online Retail II-style e-commerce transaction data. The repository combines Python ETL, PostgreSQL, dbt staging/intermediate/mart models, and Power BI-ready documentation to convert raw retail transactions into trusted reporting tables and business metrics.
 
-Current status: this folder documents the Power BI-ready semantic layer and export workflow. A `.pbix` file is not included yet.
+---
 
-## Purpose
+## Project Overview
 
-The dbt project produces validated marts for executive KPI reporting, customer lifetime value, repeat purchase behavior, country revenue, and monthly sales trends. The Power BI proof layer explains how those marts can be exported to CSV and imported into Power BI Desktop without claiming that a Power BI workbook has already been built.
+Customer Intelligence Data Warehouse ingests raw retail transaction data, cleans and structures it in PostgreSQL, and transforms it through dbt into a layered analytics model. The final marts support executive KPI reporting, customer lifetime value analysis, repeat purchase analysis, country revenue analysis, and monthly sales trend reporting.
 
-## Source dbt Marts
+The main delivery is the warehouse and analytics engineering stack: Python ETL, PostgreSQL, dbt, validated marts, and BI-ready exports. Plotly Dash and reporting assets are included as secondary visualization artifacts.
 
-- `mart_executive_kpis`
-- `mart_customer_lifetime_value`
-- `mart_repeat_purchase_metrics`
-- `mart_country_revenue`
-- `mart_sales_monthly`
+---
 
-## Planned Dashboard Pages
+## Why This Project Matters
 
-- Executive Overview
-- Customer LTV
-- Repeat Purchase & Retention
-- Country Revenue
-- Monthly Sales Trends
+Retail transaction data is rarely dashboard-ready. It often includes inconsistent fields, returns, missing customer identifiers, mixed grains, and source noise that make direct analysis unreliable.
 
-## Export dbt Marts
+This project addresses that problem by separating ingestion, cleaning, modeling, and reporting logic. The result is a documented warehouse workflow that produces stable marts for analysis and export, with clear validation and a transparent modeling layer.
 
-Start PostgreSQL, run the ETL if the warehouse is empty, then build dbt models:
+---
+
+## Architecture
+
+```mermaid
+flowchart LR
+    A[Raw Retail Excel / CSV] --> B[Python ETL]
+    B --> C[PostgreSQL Warehouse]
+    C --> D[dbt Staging Models]
+    D --> E[dbt Intermediate Models]
+    E --> F[dbt Mart Models]
+    F --> G[BI-Ready CSV Exports]
+    F --> H[Documentation Layer]
+    G --> I[Power BI / Reporting Consumption]
+    H --> I
+```
+
+The pipeline starts with raw retail files, processes them through Python ETL, loads the warehouse into PostgreSQL, and then applies dbt to create reusable analytical layers. The mart layer is the main consumption layer for KPI reporting and export workflows.
+
+---
+
+## Dataset and Scope
+
+The project is built around Online Retail II-style transaction data and modeled for customer and revenue analysis.
+
+### Implemented warehouse concepts
+- Invoices and invoice numbers for order-level analysis.
+- Customers for customer-level KPIs and repeat purchase metrics.
+- Products identified by stock code and product description.
+- Countries for geographic reporting.
+- Transaction line facts with quantity, invoice date, unit price, and return flag.
+
+### Known reporting metrics
+- Average order value.
+- Repeat purchase rate.
+- Customer lifetime value.
+- Country revenue.
+- Monthly revenue trends.
+- Quantity sold.
+- Total revenue.
+- Total customers.
+- Total invoices.
+
+---
+
+## Data Pipeline
+
+```mermaid
+flowchart TD
+    A[Raw Retail Workbook / CSV] --> B[Python ETL Extraction]
+    B --> C[Normalize Headers and Types]
+    C --> D[Handle Returns and Guest Checkouts]
+    D --> E[Create Warehouse Tables]
+    E --> F[Load PostgreSQL Fact and Dimensions]
+    F --> G[dbt Build and Test]
+    G --> H[Validated Mart Tables]
+```
+
+The Python ETL pipeline extracts raw transaction data, normalizes fields, converts types, flags returns, and loads warehouse tables. dbt then validates and transforms the warehouse into staging, intermediate, and mart outputs.
+
+---
+
+## dbt Model Lineage
+
+```mermaid
+flowchart LR
+    A[Sources] --> B[stg_sales]
+    A --> C[stg_customers]
+    A --> D[stg_products]
+    A --> E[stg_countries]
+    B --> F[int_sales_enriched]
+    B --> G[int_order_metrics]
+    B --> H[int_customer_orders]
+    B --> I[int_customer_lifetime_value]
+    B --> J[int_country_metrics]
+    F --> K[mart_executive_kpis]
+    I --> L[mart_customer_lifetime_value]
+    H --> M[mart_repeat_purchase_metrics]
+    J --> N[mart_country_revenue]
+    G --> O[mart_sales_monthly]
+```
+
+Staging models standardize the source data. Intermediate models encode reusable business logic. Mart models expose stable BI-ready tables that can be consumed directly or exported to CSV for reporting workflows.
+
+---
+
+## Key Marts
+
+### `mart_executive_kpis`
+Executive summary table for total revenue, total customers, total invoices, average order value, repeat purchase rate, and quantity sold.
+
+### `mart_customer_lifetime_value`
+Customer-level revenue ranking for value analysis and prioritization.
+
+### `mart_repeat_purchase_metrics`
+Repeat purchase behavior and loyalty-oriented metrics.
+
+### `mart_country_revenue`
+Country-level revenue, order count, customer count, and average order value.
+
+### `mart_sales_monthly`
+Monthly revenue trend table for time-series reporting.
+
+---
+
+## Validation Results
+
+The dbt implementation is validated and documented.
+
+- 14 dbt models built successfully.
+- 41 dbt tests passed.
+- dbt documentation generated successfully.
+- dbt artifacts available under `target/`.
+
+### Test coverage includes
+- `not_null`
+- `unique`
+- `relationships`
+- `accepted_values`
+
+This gives the warehouse a documented, tested analytics layer rather than a collection of standalone SQL files.
+
+---
+
+## BI / Export Flow
+
+```mermaid
+flowchart TD
+    A[Validated dbt Mart Tables] --> B[Python Export Script]
+    B --> C[CSV Files in powerbi/exports]
+    C --> D[Power BI Desktop Import]
+    D --> E[Power Query Type Cleanup]
+    E --> F[Date Table and Reporting Model]
+    F --> G[Dashboard / Report Consumption]
+```
+
+The repository includes Power BI-ready documentation and a CSV export workflow for the mart layer. The project should be described as Power BI-ready and PL-300-aligned, not as a completed Power BI workbook.
+
+### BI documentation included
+- DAX measure definitions.
+- Power Query import steps.
+- Export workflow documentation.
+- Data model guidance for mart consumption.
+
+### Scope note
+A `.pbix` file, Power BI screenshots, and Power BI publishing artifacts are not included yet.
+
+---
+
+## Dashboarding / Visualization Artifacts
+
+Plotly Dash and report assets are included as secondary visualization artifacts. They support the portfolio narrative, but they are not the core product.
+
+### Dashboard / report visuals
+![Executive Overview](assets/executive_overview.png)
+
+![Customer Analysis](assets/customer_analysis.png)
+
+![Geographic View](assets/geographic_view.png)
+
+![Product Performance](assets/product_performance.png)
+
+### Optional portfolio visuals
+![Executive Overview Portfolio](reports/executive_overview_portfolio.png)
+
+![Customer Value Portfolio](reports/customer_value_portfolio.png)
+
+![Product Return Risk Portfolio](reports/product_return_risk_portfolio.png)
+
+---
+
+## Repository Structure
+
+```text
+Customer Intelligence Data Warehouse/
+├── config/
+│   └── config.yaml
+├── data/
+│   ├── processed/
+│   │   ├── aqi_final_dataset.csv
+│   │   ├── aqi_joined_raw.csv
+│   │   └── aqi_data_build_report.md
+│   └── raw/
+│       ├── zips/
+│       └── processed/
+├── dashboard/
+├── dashboards/
+│   └── powerbi_requirements.md
+├── dbt_project.yml
+├── docker-compose.yml
+├── models/
+├── powerbi/
+├── reports/
+│   ├── model_rebuild_report.md
+│   └── figures/
+├── src/
+│   ├── etl/
+│   ├── export_dbt_marts_for_powerbi.py
+│   └── pipeline.py
+├── target/
+└── README.md
+```
+
+---
+
+## How to Run
 
 ```bash
 docker compose up -d
@@ -34,29 +231,45 @@ python src/etl/pipeline.py
 export DBT_POSTGRES_PASSWORD='your-local-postgres-password'
 dbt run
 dbt test
+dbt docs generate
 python src/export_dbt_marts_for_powerbi.py
 ```
 
-The script writes CSV files to `powerbi/exports/`.
+After running the pipeline, the warehouse is available in PostgreSQL, dbt artifacts are generated in `target/`, and the mart CSV exports are written to `powerbi/exports/`.
 
-## Import CSVs Into Power BI Desktop
+---
 
-1. Open Power BI Desktop.
-2. Select **Get Data > Text/CSV**.
-3. Import each CSV from `powerbi/exports/`.
-4. Use Power Query to set data types, rename columns, and confirm date/numeric fields.
-5. Create or import a Date table for monthly trend analysis.
-6. Build report pages using the marts and DAX measures documented in this folder.
+## Technical Skills Demonstrated
 
-## Screenshots To Add Later
+- Python ETL for structured warehouse loading.
+- PostgreSQL dimensional modeling.
+- dbt staging, intermediate, and mart layer design.
+- Data quality testing and documentation.
+- BI-ready semantic modeling.
+- Export workflows for reporting consumption.
+- Warehouse-to-reporting separation of logic.
 
-Add screenshots to `powerbi/screenshots/` after a real report is built. Recommended screenshots:
+---
 
-- Executive Overview page
-- Customer LTV page
-- Repeat Purchase & Retention page
-- Country Revenue page
-- Monthly Sales Trends page
-- Model view showing relationships and Date table
+## Resume-Safe Summary
 
-No `.pbix`, `.pbit`, or `.pq` files are included in this phase.
+- Built a PostgreSQL customer intelligence warehouse for Online Retail II-style transaction data.
+- Developed a Python ETL pipeline to clean and load retail transactions into a structured warehouse.
+- Implemented a dbt MVP with 14 validated models across staging, intermediate, and mart layers.
+- Created BI-ready marts for executive KPIs, customer lifetime value, repeat purchase behavior, country revenue, and monthly sales.
+- Documented a Power BI-ready export and semantic layer workflow with CSV exports, DAX measures, and Power Query guidance.
+
+---
+
+## Tech Stack
+
+- Python
+- pandas
+- SQLAlchemy
+- psycopg2
+- PostgreSQL
+- dbt
+- Docker
+- SQL
+- Power BI-ready documentation
+- Plotly Dash
