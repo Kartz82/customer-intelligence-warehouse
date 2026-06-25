@@ -31,7 +31,7 @@ flowchart LR
     E --> F[dbt Mart Models]
     F --> G[BI-Ready CSV Exports]
     F --> H[Documentation Layer]
-    G --> I[Power BI / Reporting Consumption]
+    G --> I[Reporting Consumption]
     H --> I
 ```
 
@@ -172,15 +172,6 @@ A `.pbix` file, Power BI screenshots, and Power BI publishing artifacts are not 
 Plotly Dash and report assets are included as secondary visualization artifacts. They support the portfolio narrative, but they are not the core product.
 
 ### Dashboard / report visuals
-![Executive Overview](assets/executive_overview.png)
-
-![Customer Analysis](assets/customer_analysis.png)
-
-![Geographic View](assets/geographic_view.png)
-
-![Product Performance](assets/product_performance.png)
-
-### Optional portfolio visuals
 ![Executive Overview Portfolio](reports/executive_overview_portfolio.png)
 
 ![Customer Value Portfolio](reports/customer_value_portfolio.png)
@@ -197,9 +188,6 @@ Customer Intelligence Data Warehouse/
 │   └── config.yaml
 ├── data/
 │   ├── processed/
-│   │   ├── aqi_final_dataset.csv
-│   │   ├── aqi_joined_raw.csv
-│   │   └── aqi_data_build_report.md
 │   └── raw/
 │       ├── zips/
 │       └── processed/
@@ -211,8 +199,7 @@ Customer Intelligence Data Warehouse/
 ├── models/
 ├── powerbi/
 ├── reports/
-│   ├── model_rebuild_report.md
-│   └── figures/
+│   └── model_rebuild_report.md
 ├── src/
 │   ├── etl/
 │   ├── export_dbt_marts_for_powerbi.py
@@ -248,16 +235,6 @@ After running the pipeline, the warehouse is available in PostgreSQL, dbt artifa
 - BI-ready semantic modeling.
 - Export workflows for reporting consumption.
 - Warehouse-to-reporting separation of logic.
-
----
-
-## Resume-Safe Summary
-
-- Built a PostgreSQL customer intelligence warehouse for Online Retail II-style transaction data.
-- Developed a Python ETL pipeline to clean and load retail transactions into a structured warehouse.
-- Implemented a dbt MVP with 14 validated models across staging, intermediate, and mart layers.
-- Created BI-ready marts for executive KPIs, customer lifetime value, repeat purchase behavior, country revenue, and monthly sales.
-- Documented a Power BI-ready export and semantic layer workflow with CSV exports, DAX measures, and Power Query guidance.
 
 ---
 
