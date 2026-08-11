@@ -1,0 +1,26 @@
+version: 2
+
+models:
+  - name: stg_orders_stream
+    description: Typed, governed view over the promoted streaming order fact.
+    columns:
+      - name: order_event_id
+        tests: [unique, not_null]
+      - name: order_status
+        description: Canonical status; closed vocabulary enforced by the AI-clean gate.
+        tests:
+          - accepted_values:
+              values: ["completed", "shipped", "cancelled"]
+      - name: line_revenue
+        tests: [not_null]
+
+  - name: mart_bi_readiness
+    description: >
+      Trust scorecard for the streaming pipeline (accept rate, rule coverage,
+      freshness, reconciliation gate, overall BI-readiness score 0..100).
+    columns:
+      - name: bi_readiness_score
+        tests: [not_null]
+      - name: reconciles
+        description: True when landed == promoted + quarantined (no silent loss).
+        tests: [not_null]

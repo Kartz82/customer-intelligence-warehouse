@@ -1,0 +1,76 @@
+name: streaming-ai-clean
+
+# Two jobs in one:
+#  * CI  — every push validates the whole stream -> AI-clean -> warehouse -> dbt path
+#  * "near-live always-on deploy" — the scheduled run is the free, always-on
+#    substitute for a 24/7 server: a micro-batch every 30 min, no cloud cost.
+# Runs in OFFLINE ai-clean mode (deterministic rules + abstain) unless a
+# GEMINI_API_KEY secret is set — so it is free and green with zero secrets.
+
+on:
+  push:
+    paths:
+      - "streaming/**"
+      - "models/streaming/**"
+      - "sql/ddl/**"
+      - ".github/workflows/streaming-pipeline.yml"
+  schedule:
+    - cron: "*/30 * * * *"   # near-live micro-batch (GitHub min interval ~5 min)
+  workflow_dispatch:
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    env:
+      DBT_POSTGRES_PASSWORD: "Password123!"
+      PGPASSWORD: "Password123!"
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}   # optional; empty -> offline
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Start Postgres + Redpanda
+        run: docker compose up -d postgres_warehouse redpanda
+
+      - name: Wait for services
+        run: |
+          for i in $(seq 1 30); do
+            if pg_isready -h localhost -p 5433 -U analytics_engineer >/dev/null 2>&1; then
+              echo "postgres ready"; break; fi
+            sleep 2
+          done
+          for i in $(seq 1 30); do
+            if docker exec customer_analytics_redpanda rpk cluster health 2>/dev/null | grep -q 'Healthy:.*true'; then
+              echo "redpanda ready"; break; fi
+            sleep 2
+          done
+
+      - name: Apply DDL
+        run: |
+          psql -h localhost -p 5433 -U analytics_engineer -d customer_intelligence_db -f sql/ddl/schema.sql
+          psql -h localhost -p 5433 -U analytics_engineer -d customer_intelligence_db -f sql/ddl/streaming.sql
+
+      - name: Produce order events
+        run: python -m streaming.producer --rate 200 --count 500
+
+      - name: Consume + AI-clean
+        run: python -m streaming.consumer --batch 500
+
+      - name: dbt build (streaming models + trust tests)
+        run: |
+          mkdir -p ~/.dbt
+          cp profiles.example.yml ~/.dbt/profiles.yml
+          dbt build --select streaming source:stream --profiles-dir ~/.dbt
+
+      - name: BI-readiness scorecard
+        run: |
+          psql -h localhost -p 5433 -U analytics_engineer -d customer_intelligence_db \
+            -c "SELECT * FROM streaming.mart_bi_readiness;"

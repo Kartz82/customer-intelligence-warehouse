@@ -8,3 +8,19 @@ database:
 paths:
   raw_data_source: "data/raw/online_retail_II.xlsx"
   processed_folder: "data/processed/"
+
+# --- Streaming layer (Redpanda / Kafka API) ---
+kafka:
+  bootstrap_servers: "localhost:19092"
+  topic: "raw_orders"
+  group_id: "orders-cleaner"
+
+# --- AI-clean gate ---
+# provider: gemini | offline. GEMINI_API_KEY comes from the environment only.
+# No key present -> automatically runs offline (deterministic rules, abstain on
+# ambiguity), so the pipeline is free and CI-safe out of the box.
+ai_clean:
+  provider: "gemini"
+  model: "gemini-flash-lite-latest"   # higher free-tier RPM than full flash
+  confidence_threshold: 0.85          # below this the gate abstains -> quarantine
+  min_call_interval_s: 4.0            # throttle LLM calls to stay under free RPM

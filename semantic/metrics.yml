@@ -1,0 +1,62 @@
+# =====================================================================
+# Governed semantic catalog — the single source of truth for what each
+# metric MEANS. BI tools, SQL users, and AI agents all read from here so
+# a number means the same thing everywhere. This is the "context" layer
+# that makes the warehouse AI-ready, not just clean.
+#
+# Not parsed by dbt (lives outside model-paths). Enforced by the dbt tests
+# and consumed by the dashboard + README. Promote to the dbt Semantic Layer
+# / MetricFlow when ready.
+# =====================================================================
+version: 1
+
+entities:
+  order:
+    grain: one row per order line
+    source: fact_orders_stream
+  customer:
+    grain: one row per customer
+    key: customer_id
+
+metrics:
+  revenue:
+    label: Revenue
+    definition: >
+      Sum of order line revenue for orders in a revenue-eligible status.
+      Cancelled orders contribute zero.
+    expression: sum(line_revenue)
+    filters:
+      - order_status in ('completed', 'shipped')
+    grain: order
+    owner: analytics-engineering
+
+  orders:
+    label: Orders
+    definition: Count of distinct promoted orders.
+    expression: count(distinct order_id)
+    grain: order
+
+  aov:
+    label: Average Order Value
+    definition: Revenue divided by revenue-eligible order count.
+    expression: revenue / nullif(orders, 0)
+    depends_on: [revenue, orders]
+
+  repeat_customer_rate:
+    label: Repeat Customer Rate
+    definition: Share of customers with more than one completed order.
+    grain: customer
+
+  return_rate:
+    label: Return Rate
+    definition: Share of order lines with negative quantity (returns).
+    expression: count(*) filter (where quantity < 0) / nullif(count(*), 0)
+
+# Governance rules the QA layer checks (see tests/ and mart_bi_readiness).
+invariants:
+  - name: no_event_lost
+    rule: landed events == promoted + quarantined
+  - name: cancelled_excluded_from_revenue
+    rule: revenue ignores order_status = 'cancelled'
+  - name: closed_status_vocabulary
+    rule: order_status in ('completed','shipped','cancelled')

@@ -8,6 +8,8 @@ __pycache__/
 *.pyc
 .env
 .DS_Store
+.venv/
+.dbt_ci/
 
 # Ignore docker local volumes if stored here
 .docker/

@@ -1,0 +1,19 @@
+version: 2
+
+sources:
+  - name: stream
+    description: >
+      Streaming ingestion layer populated by the Redpanda consumer
+      (streaming/consumer.py). Landing, audit, quarantine and the promoted
+      stream fact. Separate from the batch star schema by design.
+    database: customer_intelligence_db
+    schema: public
+    tables:
+      - name: raw_orders_events
+        description: Append-only raw landing of every order event received from Kafka.
+      - name: orders_clean_audit
+        description: One row per field the AI-clean gate decided (rule / llm / passthrough).
+      - name: orders_quarantine
+        description: Abstained events the pipeline was not confident enough to promote.
+      - name: fact_orders_stream
+        description: Promoted, governed, typed order-event fact.
