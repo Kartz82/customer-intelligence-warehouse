@@ -133,6 +133,128 @@ def get_customer_summary(df: pd.DataFrame) -> pd.DataFrame:
     return _customer_summary(df)
 
 
+def get_cohort_retention(df: pd.DataFrame) -> pd.DataFrame:
+    positive = df.loc[(df["customer_id"].notna()) & (df["is_positive_sale"])].copy()
+    if positive.empty:
+        return pd.DataFrame(
+            columns=[
+                "cohort_month",
+                "activity_month",
+                "months_since_first_purchase",
+                "cohort_size",
+                "retained_customers",
+                "retention_rate",
+                "repeat_customers",
+                "repeat_purchase_rate",
+                "cohort_orders",
+                "cohort_revenue",
+                "cumulative_cohort_revenue",
+                "cumulative_cohort_ltv",
+            ]
+        )
+
+    positive["customer_id"] = positive["customer_id"].astype(int)
+    positive["activity_month"] = positive["invoice_date"].dt.to_period("M").dt.to_timestamp()
+
+    customer_first = (
+        positive.groupby("customer_id", as_index=False)["invoice_date"]
+        .min()
+        .rename(columns={"invoice_date": "first_purchase_date"})
+    )
+    customer_first["cohort_month"] = customer_first["first_purchase_date"].dt.to_period("M").dt.to_timestamp()
+
+    customer_orders = (
+        positive.groupby("customer_id", as_index=False)
+        .agg(lifetime_order_count=("invoice_number", "nunique"), lifetime_revenue=("gross_revenue", "sum"))
+    )
+    customer_orders["is_repeat_customer"] = customer_orders["lifetime_order_count"] > 1
+
+    monthly_activity = (
+        positive.groupby(["customer_id", "activity_month"], as_index=False)
+        .agg(
+            monthly_order_count=("invoice_number", "nunique"),
+            monthly_revenue=("gross_revenue", "sum"),
+        )
+        .merge(customer_first[["customer_id", "cohort_month"]], on="customer_id", how="inner")
+        .merge(customer_orders[["customer_id", "is_repeat_customer"]], on="customer_id", how="inner")
+    )
+    monthly_activity["months_since_first_purchase"] = (
+        (monthly_activity["activity_month"].dt.year - monthly_activity["cohort_month"].dt.year) * 12
+        + (monthly_activity["activity_month"].dt.month - monthly_activity["cohort_month"].dt.month)
+    )
+
+    cohort_sizes = (
+        customer_first.merge(customer_orders[["customer_id", "is_repeat_customer"]], on="customer_id", how="inner")
+        .groupby("cohort_month", as_index=False)
+        .agg(
+            cohort_size=("customer_id", "nunique"),
+            repeat_customers=("is_repeat_customer", "sum"),
+        )
+    )
+
+    retention = (
+        monthly_activity.groupby(["cohort_month", "activity_month", "months_since_first_purchase"], as_index=False)
+        .agg(
+            retained_customers=("customer_id", "nunique"),
+            cohort_orders=("monthly_order_count", "sum"),
+            cohort_revenue=("monthly_revenue", "sum"),
+        )
+        .merge(cohort_sizes, on="cohort_month", how="inner")
+        .sort_values(["cohort_month", "months_since_first_purchase"])
+    )
+    retention["retention_rate"] = _safe_divide(retention["retained_customers"], retention["cohort_size"])
+    retention["repeat_purchase_rate"] = _safe_divide(retention["repeat_customers"], retention["cohort_size"])
+    retention["cumulative_cohort_revenue"] = retention.groupby("cohort_month")["cohort_revenue"].cumsum()
+    retention["cumulative_cohort_ltv"] = _safe_divide(
+        retention["cumulative_cohort_revenue"],
+        retention["cohort_size"],
+    )
+    return retention[
+        [
+            "cohort_month",
+            "activity_month",
+            "months_since_first_purchase",
+            "cohort_size",
+            "retained_customers",
+            "retention_rate",
+            "repeat_customers",
+            "repeat_purchase_rate",
+            "cohort_orders",
+            "cohort_revenue",
+            "cumulative_cohort_revenue",
+            "cumulative_cohort_ltv",
+        ]
+    ]
+
+
+def get_cohort_kpis(df: pd.DataFrame) -> dict[str, float]:
+    retention = get_cohort_retention(df)
+    if retention.empty:
+        return {
+            "new_customers": 0,
+            "returning_customers": 0,
+            "overall_retention_rate": 0.0,
+            "average_cohort_lifetime_value": 0.0,
+        }
+
+    month_zero = retention.loc[retention["months_since_first_purchase"] == 0]
+    retained_periods = retention.loc[retention["months_since_first_purchase"] > 0]
+    latest_cohort_values = retention.sort_values("months_since_first_purchase").groupby("cohort_month").tail(1)
+
+    return {
+        "new_customers": int(month_zero["cohort_size"].sum()),
+        "returning_customers": int(month_zero["repeat_customers"].sum()),
+        "overall_retention_rate": (
+            float(retained_periods["retained_customers"].sum() / retained_periods["cohort_size"].sum())
+            if float(retained_periods["cohort_size"].sum())
+            else 0.0
+        ),
+        "average_cohort_lifetime_value": (
+            float(latest_cohort_values["cumulative_cohort_ltv"].mean()) if len(latest_cohort_values) else 0.0
+        ),
+    }
+
+
 def get_product_metrics(df: pd.DataFrame, include_operational: bool = False) -> dict[str, float]:
     product_df = filter_operational_codes(df, include_operational=include_operational)
     returned_units = float(product_df["returned_units"].sum())

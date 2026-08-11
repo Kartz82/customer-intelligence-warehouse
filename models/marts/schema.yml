@@ -84,3 +84,37 @@ models:
         description: Monthly distinct invoice count.
       - name: quantity_sold
         description: Monthly positive-sale quantity.
+
+  - name: mart_customer_cohort_retention
+    description: Monthly customer retention, repeat purchase, and revenue by first purchase cohort.
+    columns:
+      - name: cohort_month
+        description: First positive purchase month for the customer cohort.
+        tests:
+          - not_null
+      - name: activity_month
+        description: Month of retained customer purchase activity.
+        tests:
+          - not_null
+      - name: months_since_first_purchase
+        description: Month index relative to the cohort month.
+        tests:
+          - not_null
+      - name: cohort_size
+        description: Number of customers whose first positive purchase was in the cohort month.
+        tests:
+          - not_null
+      - name: retained_customers
+        description: Number of cohort customers with positive purchase activity in the activity month.
+        tests:
+          - not_null
+      - name: retention_rate
+        description: Retained customers divided by cohort size.
+      - name: repeat_purchase_rate
+        description: Cohort customers with more than one lifetime order divided by cohort size.
+      - name: cohort_revenue
+        description: Positive-sale revenue from the cohort in the activity month.
+      - name: cumulative_cohort_revenue
+        description: Running positive-sale revenue for the cohort.
+      - name: cumulative_cohort_ltv
+        description: Running cohort revenue divided by cohort size.

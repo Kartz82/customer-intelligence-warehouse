@@ -97,3 +97,25 @@ models:
                 field: country_id
       - name: country_name
         description: Country name.
+
+  - name: int_customer_cohort_activity
+    description: Customer-month activity joined to each customer's first purchase cohort for retention analysis.
+    columns:
+      - name: customer_id
+        description: Known customer identifier.
+        tests:
+          - not_null
+      - name: cohort_month
+        description: First positive purchase month for the customer.
+        tests:
+          - not_null
+      - name: activity_month
+        description: Month with positive purchase activity for the customer.
+        tests:
+          - not_null
+      - name: months_since_first_purchase
+        description: Month index relative to the customer's first purchase month.
+        tests:
+          - not_null
+      - name: monthly_revenue
+        description: Positive-sale revenue for the customer in the activity month.

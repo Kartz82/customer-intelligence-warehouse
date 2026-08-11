@@ -16,6 +16,7 @@ MARTS = [
     "mart_executive_kpis",
     "mart_customer_lifetime_value",
     "mart_repeat_purchase_metrics",
+    "mart_customer_cohort_retention",
     "mart_country_revenue",
     "mart_sales_monthly",
 ]

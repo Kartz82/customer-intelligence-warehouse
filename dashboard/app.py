@@ -15,6 +15,8 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from src.dashboard_data import (  # noqa: E402
     filter_fact,
+    get_cohort_kpis,
+    get_cohort_retention,
     get_country_metrics,
     get_customer_metrics,
     get_customer_summary,
@@ -287,6 +289,7 @@ app.layout = html.Div(
             children=[
                 dcc.Tab(label="Executive Overview", value="executive", className="tab", selected_className="tab-selected"),
                 dcc.Tab(label="Customer Intelligence", value="customers", className="tab", selected_className="tab-selected"),
+                dcc.Tab(label="Customer Cohort & Retention", value="cohorts", className="tab", selected_className="tab-selected"),
                 dcc.Tab(label="Product & Return Audit", value="products", className="tab", selected_className="tab-selected"),
                 dcc.Tab(label="Geographic Performance", value="geography", className="tab", selected_className="tab-selected"),
                 dcc.Tab(label="Data Quality / Warehouse Health", value="quality", className="tab", selected_className="tab-selected"),
@@ -318,6 +321,8 @@ def render_tab(tab, start_date, end_date, countries, include_operational_values,
         return render_executive(filtered, include_operational)
     if tab == "customers":
         return render_customers(filtered)
+    if tab == "cohorts":
+        return render_cohorts(filtered)
     if tab == "products":
         return render_products(filtered, revenue_mode, include_operational)
     if tab == "geography":
@@ -512,6 +517,173 @@ def render_customers(df: pd.DataFrame):
                 children=[
                     chart_card("Order Frequency Distribution", hist_fig, "Known customers only."),
                     table_card("Top Customer Table", table, "Sortable and filterable customer-level metrics."),
+                ],
+            ),
+        ]
+    )
+
+
+def render_cohorts(df: pd.DataFrame):
+    metrics = get_cohort_kpis(df)
+    cohorts = get_cohort_retention(df)
+
+    if cohorts.empty:
+        heatmap_fig = empty_figure()
+        revenue_fig = empty_figure()
+        repeat_fig = empty_figure()
+        table_df = pd.DataFrame(
+            columns=[
+                "cohort_month",
+                "months_since_first_purchase",
+                "cohort_size",
+                "retained_customers",
+                "retention_rate",
+                "repeat_purchase_rate",
+                "cohort_revenue",
+                "cumulative_cohort_ltv",
+            ]
+        )
+    else:
+        cohort_labels = cohorts.assign(cohort_label=cohorts["cohort_month"].dt.strftime("%Y-%m"))
+        heatmap_data = cohort_labels.pivot_table(
+            index="cohort_label",
+            columns="months_since_first_purchase",
+            values="retention_rate",
+            aggfunc="mean",
+        ).sort_index(ascending=False)
+        heatmap_fig = go.Figure(
+            data=go.Heatmap(
+                z=heatmap_data.values,
+                x=[int(col) for col in heatmap_data.columns],
+                y=heatmap_data.index,
+                colorscale=[
+                    [0.0, "#162034"],
+                    [0.35, BLUE],
+                    [0.7, TEAL],
+                    [1.0, GREEN],
+                ],
+                zmin=0,
+                zmax=1,
+                colorbar={"title": "Retention", "tickformat": ".0%"},
+                hovertemplate="Cohort %{y}<br>Month %{x}<br>Retention %{z:.1%}<extra></extra>",
+            )
+        )
+        heatmap_fig.update_xaxes(title="Months Since First Purchase", dtick=1)
+        heatmap_fig.update_yaxes(title="First Purchase Cohort")
+        heatmap_fig = style_figure(heatmap_fig)
+
+        recent_cohorts = sorted(cohorts["cohort_month"].drop_duplicates())[-10:]
+        revenue_data = cohorts.loc[cohorts["cohort_month"].isin(recent_cohorts)].copy()
+        revenue_data["cohort_label"] = revenue_data["cohort_month"].dt.strftime("%Y-%m")
+        revenue_fig = px.line(
+            revenue_data,
+            x="months_since_first_purchase",
+            y="cumulative_cohort_revenue",
+            color="cohort_label",
+            markers=True,
+            labels={
+                "months_since_first_purchase": "Months Since First Purchase",
+                "cumulative_cohort_revenue": "Cumulative Revenue",
+                "cohort_label": "Cohort",
+            },
+            color_discrete_sequence=[AMBER, TEAL, BLUE, GREEN, ORANGE, ROSE, GRAY],
+        )
+        revenue_fig.update_yaxes(tickprefix="£", separatethousands=True)
+        revenue_fig.update_xaxes(dtick=1)
+        revenue_fig = style_figure(revenue_fig)
+
+        repeat_data = (
+            cohorts.loc[cohorts["months_since_first_purchase"] == 0]
+            .assign(cohort_label=lambda d: d["cohort_month"].dt.strftime("%Y-%m"))
+            .sort_values("cohort_month")
+        )
+        repeat_fig = px.bar(
+            repeat_data,
+            x="cohort_label",
+            y="repeat_purchase_rate",
+            color="cohort_size",
+            color_continuous_scale=[[0, BLUE], [1, AMBER]],
+            labels={
+                "cohort_label": "First Purchase Cohort",
+                "repeat_purchase_rate": "Repeat Purchase Rate",
+                "cohort_size": "Cohort Size",
+            },
+            hover_data=["cohort_size", "repeat_customers"],
+        )
+        repeat_fig.update_layout(coloraxis_colorbar={"title": "Customers"})
+        repeat_fig.update_yaxes(tickformat=".0%")
+        repeat_fig = style_figure(repeat_fig)
+
+        table_df = (
+            cohorts.sort_values(["cohort_month", "months_since_first_purchase"], ascending=[False, True])
+            .head(100)
+            .assign(
+                cohort_month=lambda d: d["cohort_month"].dt.strftime("%Y-%m"),
+                retention_rate=lambda d: d["retention_rate"].map(lambda v: f"{v * 100:.1f}%"),
+                repeat_purchase_rate=lambda d: d["repeat_purchase_rate"].map(lambda v: f"{v * 100:.1f}%"),
+                cohort_revenue=lambda d: d["cohort_revenue"].map(lambda v: f"£{v:,.0f}"),
+                cumulative_cohort_ltv=lambda d: d["cumulative_cohort_ltv"].map(lambda v: f"£{v:,.0f}"),
+            )[
+                [
+                    "cohort_month",
+                    "months_since_first_purchase",
+                    "cohort_size",
+                    "retained_customers",
+                    "retention_rate",
+                    "repeat_purchase_rate",
+                    "cohort_revenue",
+                    "cumulative_cohort_ltv",
+                ]
+            ]
+        )
+
+    table = make_table(
+        table_df,
+        [
+            {"name": "Cohort Month", "id": "cohort_month"},
+            {"name": "Month Index", "id": "months_since_first_purchase", "type": "numeric"},
+            {"name": "Cohort Size", "id": "cohort_size", "type": "numeric"},
+            {"name": "Retained Customers", "id": "retained_customers", "type": "numeric"},
+            {"name": "Retention Rate", "id": "retention_rate"},
+            {"name": "Repeat Purchase Rate", "id": "repeat_purchase_rate"},
+            {"name": "Cohort Revenue", "id": "cohort_revenue"},
+            {"name": "Cumulative LTV", "id": "cumulative_cohort_ltv"},
+        ],
+        page_size=12,
+    )
+
+    return html.Div(
+        [
+            html.Div(
+                className="kpi-grid four",
+                children=[
+                    kpi_card("New Customers", count(metrics["new_customers"]), GREEN, "Customers in first purchase cohorts"),
+                    kpi_card("Returning Customers", count(metrics["returning_customers"]), TEAL, "Customers with repeat orders"),
+                    kpi_card("Overall Retention Rate", pct(metrics["overall_retention_rate"]), BLUE, "Months after first purchase"),
+                    kpi_card("Average Cohort LTV", money(metrics["average_cohort_lifetime_value"]), AMBER),
+                ],
+            ),
+            html.Div(
+                className="one-column",
+                children=[
+                    chart_card(
+                        "Cohort Retention Heatmap",
+                        heatmap_fig,
+                        "Rows are first purchase cohorts; columns are months since first purchase.",
+                    ),
+                ],
+            ),
+            html.Div(
+                className="two-column",
+                children=[
+                    chart_card("Cohort Revenue Over Time", revenue_fig, "Cumulative positive-sale revenue by cohort."),
+                    chart_card("Repeat Purchase Rate by Cohort", repeat_fig, "Share of cohort customers with more than one order."),
+                ],
+            ),
+            html.Div(
+                className="one-column",
+                children=[
+                    table_card("Cohort Retention Detail", table, "Monthly retention and revenue metrics by first purchase cohort."),
                 ],
             ),
         ]

@@ -6,7 +6,7 @@ A reproducible analytics engineering and BI-ready warehouse project built around
 
 ## Project Overview
 
-Customer Intelligence Data Warehouse ingests raw retail transaction data, cleans and structures it in PostgreSQL, and transforms it through dbt into a layered analytics model. The final marts support executive KPI reporting, customer lifetime value analysis, repeat purchase analysis, country revenue analysis, and monthly sales trend reporting.
+Customer Intelligence Data Warehouse ingests raw retail transaction data, cleans and structures it in PostgreSQL, and transforms it through dbt into a layered analytics model. The final marts support executive KPI reporting, customer lifetime value analysis, cohort retention analysis, repeat purchase analysis, country revenue analysis, and monthly sales trend reporting.
 
 The main delivery is the warehouse and analytics engineering stack: Python ETL, PostgreSQL, dbt, validated marts, and BI-ready exports. Plotly Dash and reporting assets are included as secondary visualization artifacts.
 
@@ -53,6 +53,8 @@ The project is built around Online Retail II-style transaction data and modeled 
 ### Known reporting metrics
 - Average order value.
 - Repeat purchase rate.
+- Cohort retention rate.
+- Cohort revenue over time.
 - Customer lifetime value.
 - Country revenue.
 - Monthly revenue trends.
@@ -93,9 +95,11 @@ flowchart LR
     B --> H[int_customer_orders]
     B --> I[int_customer_lifetime_value]
     B --> J[int_country_metrics]
+    H --> P[int_customer_cohort_activity]
     F --> K[mart_executive_kpis]
     I --> L[mart_customer_lifetime_value]
     H --> M[mart_repeat_purchase_metrics]
+    P --> Q[mart_customer_cohort_retention]
     J --> N[mart_country_revenue]
     G --> O[mart_sales_monthly]
 ```
@@ -114,6 +118,9 @@ Customer-level revenue ranking for value analysis and prioritization.
 
 ### `mart_repeat_purchase_metrics`
 Repeat purchase behavior and loyalty-oriented metrics.
+
+### `mart_customer_cohort_retention`
+Monthly retention, repeat purchase rate, cohort revenue, and cumulative cohort lifetime value by first purchase month.
 
 ### `mart_country_revenue`
 Country-level revenue, order count, customer count, and average order value.
@@ -172,6 +179,8 @@ A `.pbix` file, Power BI screenshots, and Power BI publishing artifacts are not 
 Plotly Dash and report assets are included as secondary visualization artifacts. They support the portfolio narrative, but they are not the core product.
 
 ### Dashboard / report visuals
+The Plotly Dash app includes a "Customer Cohort & Retention" report page with KPI cards, a retention heatmap, repeat purchase rate by cohort, and cohort revenue over time.
+
 ![Executive Overview Portfolio](reports/executive_overview_portfolio.png)
 
 ![Customer Value Portfolio](reports/customer_value_portfolio.png)
