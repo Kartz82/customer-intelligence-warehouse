@@ -164,8 +164,8 @@ Monthly revenue trend table for time-series reporting.
 
 The dbt implementation is validated and documented.
 
-- 14 dbt models built successfully.
-- 41 dbt tests passed.
+- 20 dbt models built successfully across staging, intermediate, mart, and streaming layers.
+- 57 dbt tests passed, including the streaming reconciliation invariant (`landed == promoted + quarantined`).
 - dbt documentation generated successfully.
 - dbt artifacts available under `target/`.
 
