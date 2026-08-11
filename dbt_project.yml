@@ -25,3 +25,5 @@ models:
       +schema: intermediate
     marts:
       +schema: marts
+    streaming:
+      +schema: streaming

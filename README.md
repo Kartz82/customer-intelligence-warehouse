@@ -8,7 +8,7 @@ A reproducible analytics engineering and BI-ready warehouse project built around
 
 Customer Intelligence Data Warehouse ingests raw retail transaction data, cleans and structures it in PostgreSQL, and transforms it through dbt into a layered analytics model. The final marts support executive KPI reporting, customer lifetime value analysis, cohort retention analysis, repeat purchase analysis, country revenue analysis, and monthly sales trend reporting.
 
-The main delivery is the warehouse and analytics engineering stack: Python ETL, PostgreSQL, dbt, validated marts, and BI-ready exports. Plotly Dash and reporting assets are included as secondary visualization artifacts.
+The main delivery is the warehouse and analytics engineering stack: Python ETL, PostgreSQL, dbt, validated marts, and BI-ready exports. Plotly Dash and reporting assets are included as secondary visualization artifacts. An additive **streaming + AI-clean layer** (Redpanda → AI-clean gate → governed warehouse) extends the batch pipeline toward real-time, trustworthy analytics — see the section below.
 
 ---
 
@@ -36,6 +36,36 @@ flowchart LR
 ```
 
 The pipeline starts with raw retail files, processes them through Python ETL, loads the warehouse into PostgreSQL, and then applies dbt to create reusable analytical layers. The mart layer is the main consumption layer for KPI reporting and export workflows.
+
+---
+
+## Streaming + AI-Clean Layer
+
+An additive layer that extends the batch warehouse toward real-time, trustworthy analytics. It ingests a live operational order-event stream and only promotes data it is confident in — the rest is quarantined, never silently guessed. The batch star-schema ETL is untouched; streamed data lands in its own tables.
+
+```mermaid
+flowchart LR
+    A[Order-event stream] --> B[Redpanda / Kafka API]
+    B --> C[AI-clean gate]
+    C -->|rule or high-confidence LLM| D[fact_orders_stream]
+    C -->|low confidence / ambiguous| E[orders_quarantine]
+    C --> F[orders_clean_audit]
+    D --> G[dbt trust models]
+    E --> G
+    F --> G
+    G --> H[mart_bi_readiness scorecard]
+```
+
+**AI-clean gate** — deterministic rules first; Gemini (called over REST, no SDK) only on genuine ambiguity; and it **abstains** to a quarantine table when confidence is below threshold instead of guessing. Every field decision is audited with method (`rule`/`llm`), confidence, and model.
+
+**Trust by construction:**
+- No event is ever dropped — `landed == promoted + quarantined`, enforced by a dbt test.
+- A governed semantic catalog (`semantic/metrics.yml`) is the single source of truth for what each metric means.
+- `mart_bi_readiness` publishes a 0–100 readiness score with a hard reconciliation gate.
+
+**Verified locally (same 81 landed events, A/B):** rules-only promotes 45 (55.6%); with Gemini-assisted resolution 69 (85.2%) — the LLM rescues 24 typo/variant statuses (`complete!!` → completed, `shipd` → shipped) while correctly abstaining on ambiguous dates and unmappable statuses. dbt build green; reconciliation test passes.
+
+Runs **free** end-to-end: offline (deterministic rules + abstention) with no API key, or Gemini-assisted with a free-tier key. A live trust dashboard runs on `:8051`, and a GitHub Actions workflow runs the whole path as CI plus a near-live scheduled batch. Full setup and run commands: [`streaming/README.md`](streaming/README.md).
 
 ---
 
@@ -244,6 +274,9 @@ After running the pipeline, the warehouse is available in PostgreSQL, dbt artifa
 - BI-ready semantic modeling.
 - Export workflows for reporting consumption.
 - Warehouse-to-reporting separation of logic.
+- Streaming ingestion via Redpanda (Kafka API).
+- LLM-assisted data cleaning with confidence-based abstention and full decision lineage.
+- Data governance: reconciliation invariants, a semantic metric catalog, and a BI-readiness score.
 
 ---
 
@@ -256,6 +289,8 @@ After running the pipeline, the warehouse is available in PostgreSQL, dbt artifa
 - PostgreSQL
 - dbt
 - Docker
+- Redpanda (Kafka API)
+- Gemini (LLM data cleaning)
 - SQL
 - Power BI-ready documentation
 - Plotly Dash

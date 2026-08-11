@@ -13,5 +13,35 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  # --- Streaming layer: Redpanda (Kafka API) + console -----------------
+  redpanda:
+    image: redpandadata/redpanda:v24.2.7
+    container_name: customer_analytics_redpanda
+    command:
+      - redpanda start
+      - --smp 1
+      - --overprovisioned
+      - --node-id 0
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://redpanda:9092,external://localhost:19092
+    ports:
+      - "19092:19092"   # external Kafka listener used by producer/consumer
+      - "9644:9644"     # admin API
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -q 'Healthy:.*true'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redpanda_console:
+    image: redpandadata/console:v2.7.2
+    container_name: customer_analytics_redpanda_console
+    depends_on:
+      - redpanda
+    environment:
+      KAFKA_BROKERS: redpanda:9092
+    ports:
+      - "8080:8080"     # http://localhost:8080 to watch the topic
+
 volumes:
   postgres_data:
