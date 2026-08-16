@@ -36,7 +36,7 @@ python -m streaming.consumer            # Ctrl-C to stop
 # 5. build trust models + scorecard
 dbt build --select streaming source:stream
 psql -h localhost -p 5433 -U analytics_engineer -d customer_intelligence_db \
-  -c "SELECT * FROM streaming.mart_bi_readiness;"
+  -c "SELECT * FROM analytics_streaming.mart_bi_readiness;"
 ```
 
 ## AI provider

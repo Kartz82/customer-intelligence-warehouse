@@ -73,4 +73,4 @@ jobs:
       - name: BI-readiness scorecard
         run: |
           psql -h localhost -p 5433 -U analytics_engineer -d customer_intelligence_db \
-            -c "SELECT * FROM streaming.mart_bi_readiness;"
+            -c "SELECT * FROM analytics_streaming.mart_bi_readiness;"
