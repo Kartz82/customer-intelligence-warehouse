@@ -14,8 +14,9 @@ on:
       - "models/streaming/**"
       - "sql/ddl/**"
       - ".github/workflows/streaming-pipeline.yml"
-  schedule:
-    - cron: "*/30 * * * *"   # near-live micro-batch (GitHub min interval ~5 min)
+  # schedule paused — re-enable by uncommenting once the periodic run is wanted again:
+  # schedule:
+  #   - cron: "*/30 * * * *"   # near-live micro-batch (GitHub min interval ~5 min)
   workflow_dispatch:
 
 jobs:
